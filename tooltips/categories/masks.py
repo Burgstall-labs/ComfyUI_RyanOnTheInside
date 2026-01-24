@@ -111,6 +111,175 @@ Each node type has different parameters that can be modulated:
         "draw_modifiers": "Visibility of vortices and gravity wells (0.0 to 1.0)"
     }, inherits_from='ParticleSystemMaskBase')
 
+    # TaichiParticleMask tooltips (inherits from: MaskBase)
+    TooltipManager.register_tooltips("TaichiParticleMask", {
+        "emitters": "List of Taichi emitter configurations (TAICHI_EMITTER type)",
+        "particle_count": "Maximum number of particles allowed in the simulation",
+        "particle_lifetime": "Lifetime of particles in seconds (0.1 to 10.0)",
+        "wind_strength": "Horizontal wind strength in pixels/sec² (-500.0 to 500.0)",
+        "wind_direction": "Wind direction in degrees (0.0 to 360.0)",
+        "gravity": "Vertical gravity in pixels/sec² (-2000.0 to 2000.0)",
+        "frame_rate": "Simulation frame rate for time step (1.0 to 120.0)",
+        "start_frame": "Frame to start emission (0 to 10000)",
+        "end_frame": "Frame to end emission (0 to 10000, 0 means until end)"
+    }, inherits_from='MaskBase', description="Taichi-accelerated particle emission mask with audio-reactive emission support.")
+
+    # TaichiParticleEmitter tooltips
+    TooltipManager.register_tooltips("TaichiParticleEmitter", {
+        "emitter_x": "X-coordinate of the emitter (0.0 to 1.0)",
+        "emitter_y": "Y-coordinate of the emitter (0.0 to 1.0)",
+        "particle_direction": "Direction of particle emission in degrees (0.0 to 360.0)",
+        "direction_offset": "Additional direction offset in degrees (-360.0 to 360.0)",
+        "particle_spread": "Spread angle of particle emission in degrees (0.0 to 360.0)",
+        "particle_size": "Size of emitted particles (1.0 to 100.0)",
+        "particle_speed": "Speed of emitted particles in pixels/sec (0.0 to 1000.0)",
+        "emission_rate": "Base emission rate in particles/sec (0.0 to 200.0)",
+        "color": "Color of emitted particles (RGB string)",
+        "emission_radius": "Radius of the area from which particles are emitted (0.0 to 200.0)",
+        "particle_shape": "Particle shape ('circle', 'square', 'spark')",
+        "spark_length": "Length of spark streaks when using 'spark' shape (0.0 to 200.0)",
+        "particle_lifetime": "Override particle lifetime for this emitter (0 means use global)",
+        "endless_mode": "When enabled, reuse particle slots for endless emission",
+        "start_frame": "Frame to start the emission (0 to 10000)",
+        "end_frame": "Frame to end the emission (0 to 10000)",
+        "previous_emitter": "Optional previous emitter to chain with (TAICHI_EMITTER type)",
+        "emitter_modulation": "Optional audio modulation for emission (TAICHI_EMITTER_MOD type)"
+    }, description="Define a Taichi particle emitter with optional audio-driven modulation.")
+
+    # TaichiParticleAudioReactiveEmission tooltips
+    TooltipManager.register_tooltips("TaichiParticleAudioReactiveEmission", {
+        "feature": "Audio or feature input used to drive emission rate (FEATURE type)",
+        "scale": "Multiplier for the feature value (0.0 to 10.0)",
+        "threshold": "Feature activation threshold (0.0 to 1.0)",
+        "mode": "Emission modulation mode ('relative' scales base rate, 'absolute' adds to base rate)",
+        "onset_threshold": "Feature delta threshold to trigger a burst (0.0 to 1.0)",
+        "burst_strength": "Burst multiplier applied to feature delta (0.0 to 5000.0)",
+        "burst_min": "Minimum burst count when triggered (0 to 20000, 0 disables)",
+        "burst_max": "Maximum burst count when triggered (0 to 20000, 0 disables)"
+    }, description="Create an audio-reactive modulation payload for Taichi emitters.")
+
+    # TaichiPathFromPoints tooltips
+    TooltipManager.register_tooltips("TaichiPathFromPoints", {
+        "points": "JSON list of points [{'x':0.2,'y':0.3}, ...] in normalized coordinates",
+        "interpolation": "Interpolation method for path sampling",
+        "closed": "Whether the path loops back to the first point",
+        "width": "Preview width in pixels",
+        "height": "Preview height in pixels",
+        "thickness": "Path preview thickness in pixels",
+        "preview_color": "Path preview color (RGB string)"
+    }, description="Create a Taichi path from explicit points with a preview mask.")
+
+    # TaichiPathFromShape tooltips
+    TooltipManager.register_tooltips("TaichiPathFromShape", {
+        "shape_type": "Shape used to generate the path",
+        "center_x": "Center X for circle/arc/spiral/sine (0.0 to 1.0)",
+        "center_y": "Center Y for circle/arc/spiral/sine (0.0 to 1.0)",
+        "size_x": "Normalized width of the shape bounding box",
+        "size_y": "Normalized height of the shape bounding box",
+        "sides": "Number of sides for polygon/square shapes",
+        "rotation": "Polygon rotation in degrees",
+        "corner_radius": "Corner radius (0-1 as fraction of radius, >1 as absolute units)",
+        "start_angle": "Start angle for arc in degrees",
+        "end_angle": "End angle for arc in degrees",
+        "segments": "Number of segments used to sample the shape",
+        "polyline_points": "JSON list of points for polyline shape",
+        "closed": "Whether to close the generated path",
+        "preview_mask": "Emit a mask preview for the path",
+        "preview_image": "Emit a colored image preview for the path",
+        "preview_width": "Preview width in pixels",
+        "preview_height": "Preview height in pixels",
+        "preview_thickness": "Path preview thickness in pixels",
+        "preview_color": "Path preview color (RGB string)"
+    }, description="Generate a Taichi path from simple shapes with preview.")
+
+    # TaichiPathPreview tooltips
+    TooltipManager.register_tooltips("TaichiPathPreview", {
+        "path": "Path definition (TAICHI_PATH type)",
+        "width": "Preview width in pixels",
+        "height": "Preview height in pixels",
+        "thickness": "Path preview thickness in pixels",
+        "preview_color": "Path preview color (RGB string)",
+        "show_emitter": "Overlay a marker at a progress position along the path",
+        "emitter_progress": "Normalized path progress (0.0 to 1.0)",
+        "emitter_size": "Marker size in pixels",
+        "emitter_color": "Marker color (RGB string)"
+    }, description="Preview a Taichi path as a mask and image.")
+
+    TooltipManager.register_tooltips("TaichiPathFromSpeedDirection", {
+        "speed_feature": "Feature driving speed (FEATURE type)",
+        "direction_feature": "Feature driving direction angle (FEATURE type)",
+        "frame_rate": "Frame rate used to integrate the path",
+        "start_x": "Starting X position (0.0 to 1.0)",
+        "start_y": "Starting Y position (0.0 to 1.0)",
+        "min_speed": "Minimum speed (normalized units per second)",
+        "max_speed": "Maximum speed (normalized units per second)",
+        "min_direction": "Minimum direction angle in degrees",
+        "max_direction": "Maximum direction angle in degrees",
+        "direction_mode": "Absolute uses mapped angle; relative adds to current heading",
+        "direction_smoothing": "How quickly direction follows the feature (0..1)",
+        "speed_smoothing": "How quickly speed follows the feature (0..1)"
+    }, description="Build a path by integrating speed and direction features with edge bounces.")
+
+    # TaichiPathEmitterModulation tooltips
+    TooltipManager.register_tooltips("TaichiPathEmitterModulation", {
+        "speed_feature": "Feature used to modulate path speed (FEATURE type)",
+        "speed_scale": "Scale for speed modulation",
+        "speed_offset": "Offset for speed modulation",
+        "speed_threshold": "Threshold for speed modulation",
+        "speed_mode": "Mode for speed modulation",
+        "size_feature": "Feature used to modulate particle size (FEATURE type)",
+        "size_scale": "Scale for size modulation",
+        "size_offset": "Offset for size modulation",
+        "size_threshold": "Threshold for size modulation",
+        "size_mode": "Mode for size modulation",
+        "angle_feature": "Feature used to modulate emission angle (FEATURE type)",
+        "angle_scale": "Scale for angle modulation",
+        "angle_offset": "Offset for angle modulation",
+        "angle_threshold": "Threshold for angle modulation",
+        "angle_mode": "Mode for angle modulation",
+        "spread_feature": "Feature used to modulate emission spread (FEATURE type)",
+        "spread_scale": "Scale for spread modulation",
+        "spread_offset": "Offset for spread modulation",
+        "spread_threshold": "Threshold for spread modulation",
+        "spread_mode": "Mode for spread modulation",
+        "burst_feature": "Feature used to trigger bursts (FEATURE type)",
+        "onset_threshold": "Delta threshold to trigger a burst",
+        "burst_strength": "Burst multiplier for feature deltas",
+        "burst_min": "Minimum burst count",
+        "burst_max": "Maximum burst count"
+    }, description="Modulate path speed, size, angle, and spread using features.")
+
+    # TaichiParticleEmitterOnPath tooltips
+    TooltipManager.register_tooltips("TaichiParticleEmitterOnPath", {
+        "path": "Path definition (TAICHI_PATH type)",
+        "emitter_x": "Base emitter X for relative paths (0.0 to 1.0)",
+        "emitter_y": "Base emitter Y for relative paths (0.0 to 1.0)",
+        "path_speed": "Path traversal speed in cycles/sec",
+        "loop_mode": "Path traversal mode ('loop', 'clamp', 'pingpong')",
+        "align_to_path": "Align emission direction to the path tangent",
+        "use_emitter_origin": "Treat path points as offsets from emitter_x/y",
+        "particle_direction": "Base particle direction in degrees",
+        "direction_offset": "Direction offset (use 180 for sparks behind travel)",
+        "particle_spread": "Base particle spread in degrees",
+        "particle_size": "Base particle size in pixels",
+        "particle_speed": "Base particle speed in pixels/sec",
+        "emission_rate": "Base emission rate in particles/sec",
+        "color": "Particle color (RGB string)",
+        "emission_radius": "Emitter radius in pixels",
+        "particle_shape": "Particle shape ('circle', 'square', 'spark')",
+        "spark_length": "Length of spark streaks for spark shape",
+        "particle_lifetime": "Override particle lifetime for this emitter (0 means use global)",
+        "endless_mode": "When enabled, reuse particle slots for endless emission",
+        "start_frame": "Frame to start emission",
+        "end_frame": "Frame to end emission",
+        "emitter_modulation": "Optional emission modulation (TAICHI_EMITTER_MOD)",
+        "path_modulation": "Optional path modulation (TAICHI_PATH_MOD)"
+    }, description="Emit Taichi particles while traversing a path.")
+
+    # TaichiResetCache tooltips
+    TooltipManager.register_tooltips("TaichiResetCache", {
+    }, description="Reset cached Taichi particle buffers to free GPU/CPU memory.")
+
     # ParticleSystemModulatorBase tooltips (inherits from: RyanOnTheInside)
     TooltipManager.register_tooltips("ParticleSystemModulatorBase", {
         # TODO: Add parameter tooltips

@@ -9,3 +9,4 @@ mido
 torchaudio
 pygame
 scikit-image
+taichi>=1.7.0

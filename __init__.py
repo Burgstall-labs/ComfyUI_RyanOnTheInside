@@ -190,6 +190,22 @@ from .nodes.masks.particle_system_masks import (
     EmitterEmissionRateModulation,
     )
 
+from .nodes.masks.taichi_particle_nodes import (
+    TaichiParticleEmitter,
+    TaichiParticleAudioReactiveEmission,
+    TaichiParticleMask,
+    TaichiPathEmitterModulation,
+    TaichiParticleEmitterOnPath,
+    TaichiResetCache,
+)
+
+from .nodes.masks.taichi_path_nodes import (
+    TaichiPathFromPoints,
+    TaichiPathFromShape,
+    TaichiPathPreview,
+    TaichiPathFromSpeedDirection,
+)
+
 from .nodes.masks.mask_utility_nodes import (
     _mfc, 
     TextMaskNode, 
@@ -422,6 +438,18 @@ NODE_CLASS_MAPPINGS = {
     "ParticleSpeedModulation":      ParticleSpeedModulation,
     "EmitterEmissionRateModulation":EmitterEmissionRateModulation,
 
+    # taichi particle simulation
+    "TaichiParticleEmitter":        TaichiParticleEmitter,
+    "TaichiParticleAudioReactiveEmission": TaichiParticleAudioReactiveEmission,
+    "TaichiParticleMask":           TaichiParticleMask,
+    "TaichiPathEmitterModulation":  TaichiPathEmitterModulation,
+    "TaichiParticleEmitterOnPath":  TaichiParticleEmitterOnPath,
+    "TaichiPathFromPoints":         TaichiPathFromPoints,
+    "TaichiPathFromShape":          TaichiPathFromShape,
+    "TaichiPathPreview":            TaichiPathPreview,
+    "TaichiPathFromSpeedDirection": TaichiPathFromSpeedDirection,
+    "TaichiResetCache":             TaichiResetCache,
+
     #flex masks 
     "FlexMaskMorph":                FlexMaskMorph,
     "FlexMaskWarp":                 FlexMaskWarp,
@@ -612,6 +640,16 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "FlexVideoSpeed":               "**BETA** Flex Video Speed",
     "FlexVideoFrameBlend":          "**BETA**Flex Video Frame Blend",
     "AudioFeatureVisualizer":       "Audio Feature Visualizer ***BETA***",
+    "TaichiParticleEmitter":        "Taichi Particle Emitter",
+    "TaichiParticleAudioReactiveEmission": "Taichi Audio Reactive Emission",
+    "TaichiParticleMask":           "Taichi Particle Mask",
+    "TaichiPathEmitterModulation":  "Taichi Path Emitter Modulation",
+    "TaichiParticleEmitterOnPath":  "Taichi Particle Emitter On Path",
+    "TaichiPathFromPoints":         "Taichi Path From Points",
+    "TaichiPathFromShape":          "Taichi Path From Shape",
+    "TaichiPathPreview":            "Taichi Path Preview",
+    "TaichiPathFromSpeedDirection": "Taichi Path From Speed/Direction",
+    "TaichiResetCache":             "Taichi Reset Cache",
 
     "MIDILoadAndExtract":           "MIDI Load & Feature Extract",
     "PitchRangeByNoteNode":         "Pitch Range By Note",
