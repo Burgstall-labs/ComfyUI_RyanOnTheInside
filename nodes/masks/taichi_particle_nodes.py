@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 from typing import List, Tuple
 
+import cv2
 import numpy as np
 import torch
 
@@ -107,7 +108,7 @@ class TaichiParticleEmitter(RyanOnTheInside):
                 "particle_spread": ("FLOAT", {"default": 45.0, "min": 0.0, "max": 360.0, "step": 1.0}),
                 "particle_size": ("FLOAT", {"default": 6.0, "min": 1.0, "max": 100.0, "step": 0.5}),
                 "particle_speed": ("FLOAT", {"default": 200.0, "min": 0.0, "max": 1000.0, "step": 1.0}),
-                "emission_rate": ("FLOAT", {"default": 10.0, "min": 0.0, "max": 200.0, "step": 0.1}),
+                "emission_rate": ("FLOAT", {"default": 10.0, "min": 0.0, "max": 2000.0, "step": 0.1}),
                 "color": ("STRING", {"default": "(255,255,255)"}),
                 "emission_radius": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 200.0, "step": 0.1}),
                 "particle_shape": (["circle", "square", "spark"],),
@@ -180,6 +181,355 @@ class TaichiParticleEmitter(RyanOnTheInside):
             emitter_list = [emitter]
         else:
             emitter_list = previous_emitter + [emitter]
+
+        return (emitter_list,)
+
+
+@apply_tooltips
+class TaichiParticleEmitterFromMaskEdges(RyanOnTheInside):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "masks": ("MASK",),
+                "spot_count": ("INT", {"default": 8, "min": 1, "max": 200, "step": 1}),
+                "edge_low_threshold": ("INT", {"default": 100, "min": 0, "max": 255, "step": 1}),
+                "edge_high_threshold": ("INT", {"default": 200, "min": 0, "max": 255, "step": 1}),
+                "sampling_mode": (["per_frame", "first_frame"],),
+                "direction_mode": (["outward", "inward"],),
+                "random_seed": ("INT", {"default": 0, "min": 0, "max": 2**31 - 1, "step": 1}),
+                "particle_direction": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 360.0, "step": 1.0}),
+                "direction_offset": ("FLOAT", {"default": 0.0, "min": -360.0, "max": 360.0, "step": 1.0}),
+                "particle_spread": ("FLOAT", {"default": 45.0, "min": 0.0, "max": 360.0, "step": 1.0}),
+                "particle_size": ("FLOAT", {"default": 6.0, "min": 1.0, "max": 100.0, "step": 0.5}),
+                "particle_speed": ("FLOAT", {"default": 200.0, "min": 0.0, "max": 1000.0, "step": 1.0}),
+                "emission_rate": ("FLOAT", {"default": 10.0, "min": 0.0, "max": 2000.0, "step": 0.1}),
+                "color": ("STRING", {"default": "(255,255,255)"}),
+                "emission_radius": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 200.0, "step": 0.1}),
+                "particle_shape": (["circle", "square", "spark"],),
+                "spark_length": ("FLOAT", {"default": 12.0, "min": 0.0, "max": 200.0, "step": 1.0}),
+                "particle_lifetime": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.1}),
+                "endless_mode": ("BOOLEAN", {"default": False}),
+                "start_frame": ("INT", {"default": 0, "min": 0, "max": 10000, "step": 1}),
+                "end_frame": ("INT", {"default": 0, "min": 0, "max": 10000, "step": 1}),
+            },
+            "optional": {
+                "previous_emitter": ("TAICHI_EMITTER",),
+                "emitter_modulation": ("TAICHI_EMITTER_MOD",),
+            },
+        }
+
+    RETURN_TYPES = ("TAICHI_EMITTER",)
+    FUNCTION = "create_emitter"
+    CATEGORY = "RyanOnTheInside/ParticleSystems/Taichi"
+
+    def _sample_edge_points(
+        self,
+        mask_frame: np.ndarray,
+        spot_count: int,
+        edge_low_threshold: int,
+        edge_high_threshold: int,
+        direction_mode: str,
+        random_seed: int,
+        frame_index: int,
+        fallback_angle: float,
+    ):
+        mask_float = np.clip(mask_frame.astype(np.float32), 0.0, 1.0)
+        height, width = mask_float.shape
+        mask_uint8 = (mask_float * 255.0).astype(np.uint8)
+
+        edges = cv2.Canny(mask_uint8, int(edge_low_threshold), int(edge_high_threshold))
+        edge_positions = np.column_stack(np.where(edges > 0))
+
+        if edge_positions.size == 0:
+            points = [(0.5, 0.5, float(fallback_angle)) for _ in range(spot_count)]
+            return points
+
+        grad_x = cv2.Sobel(mask_float, cv2.CV_32F, 1, 0, ksize=3)
+        grad_y = cv2.Sobel(mask_float, cv2.CV_32F, 0, 1, ksize=3)
+
+        mask_sum = mask_float.sum()
+        if mask_sum > 1e-6:
+            coords = np.column_stack(np.where(mask_float > 0.0))
+            centroid_y, centroid_x = coords.mean(axis=0)
+        else:
+            centroid_y = height * 0.5
+            centroid_x = width * 0.5
+
+        rng = np.random.default_rng(int(random_seed) + int(frame_index) * 10007)
+        indices = rng.choice(len(edge_positions), size=spot_count, replace=True)
+        sampled = edge_positions[indices]
+
+        points = []
+        for y, x in sampled:
+            gx = float(grad_x[y, x])
+            gy = float(grad_y[y, x])
+            if direction_mode == "outward":
+                vx, vy = -gx, -gy
+            else:
+                vx, vy = gx, gy
+
+            norm = math.hypot(vx, vy)
+            if norm < 1e-6:
+                vx = float(x) - float(centroid_x)
+                vy = float(y) - float(centroid_y)
+                if direction_mode == "inward":
+                    vx, vy = -vx, -vy
+                norm = math.hypot(vx, vy)
+            if norm < 1e-6:
+                angle = float(fallback_angle)
+            else:
+                angle = math.degrees(math.atan2(vy, vx))
+
+            px = float(x) / float(width)
+            py = float(y) / float(height)
+            points.append((px, py, angle))
+
+        return points
+
+    def create_emitter(
+        self,
+        masks,
+        spot_count,
+        edge_low_threshold,
+        edge_high_threshold,
+        sampling_mode,
+        direction_mode,
+        random_seed,
+        particle_direction,
+        direction_offset,
+        particle_spread,
+        particle_size,
+        particle_speed,
+        emission_rate,
+        color,
+        emission_radius,
+        particle_shape,
+        spark_length,
+        particle_lifetime,
+        endless_mode,
+        start_frame,
+        end_frame,
+        previous_emitter=None,
+        emitter_modulation=None,
+    ):
+        masks_np = masks.cpu().numpy() if isinstance(masks, torch.Tensor) else masks
+        num_frames, height, width = masks_np.shape
+        spot_count = max(1, int(spot_count))
+
+        frame_points = [[] for _ in range(spot_count)]
+        frame_angles = [[] for _ in range(spot_count)]
+
+        sample_frame_indices = range(num_frames)
+        if sampling_mode == "first_frame":
+            sample_frame_indices = [0] * num_frames
+
+        for frame_index, sample_index in enumerate(sample_frame_indices):
+            sampled = self._sample_edge_points(
+                masks_np[sample_index],
+                spot_count,
+                edge_low_threshold,
+                edge_high_threshold,
+                direction_mode,
+                random_seed,
+                frame_index,
+                particle_direction,
+            )
+            for idx, (px, py, angle) in enumerate(sampled):
+                frame_points[idx].append((px, py))
+                frame_angles[idx].append(float(angle))
+
+        shape_map = {"circle": 0, "square": 1, "spark": 2}
+        emitters = []
+        for idx in range(spot_count):
+            emitter = {
+                "emitter_x": 0.5,
+                "emitter_y": 0.5,
+                "base_emitter_x": 0.5,
+                "base_emitter_y": 0.5,
+                "particle_direction": float(particle_direction),
+                "base_particle_direction": float(particle_direction),
+                "direction_offset": float(direction_offset),
+                "particle_spread": float(particle_spread),
+                "base_particle_spread": float(particle_spread),
+                "particle_size": float(particle_size),
+                "base_particle_size": float(particle_size),
+                "particle_speed": float(particle_speed),
+                "emission_rate": float(emission_rate),
+                "color": _parse_color(color),
+                "emission_radius": float(emission_radius),
+                "particle_shape": shape_map.get(particle_shape, 0),
+                "spark_length": float(spark_length),
+                "particle_lifetime": float(particle_lifetime),
+                "endless_mode": bool(endless_mode),
+                "start_frame": int(start_frame),
+                "end_frame": int(end_frame),
+                "path": {
+                    "frame_points": frame_points[idx],
+                    "frame_angles": frame_angles[idx],
+                },
+                "align_to_path": True,
+                "use_emitter_origin": False,
+            }
+
+            if emitter_modulation is not None:
+                emitter["audio_modulation"] = emitter_modulation
+
+            emitters.append(emitter)
+
+        if previous_emitter is None:
+            emitter_list = emitters
+        else:
+            emitter_list = previous_emitter + emitters
+
+        return (emitter_list,)
+
+
+@apply_tooltips
+class TaichiParticleBurstSpots(RyanOnTheInside):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                "spot_count": ("INT", {"default": 5, "min": 1, "max": 200, "step": 1}),
+                "position_mode": (["random", "lock_x", "lock_y", "lock_xy"],),
+                "lock_x": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "lock_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "random_seed": ("INT", {"default": 0, "min": 0, "max": 2**31 - 1, "step": 1}),
+                "particle_direction": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 360.0, "step": 1.0}),
+                "direction_offset": ("FLOAT", {"default": 0.0, "min": -360.0, "max": 360.0, "step": 1.0}),
+                "particle_spread": ("FLOAT", {"default": 45.0, "min": 0.0, "max": 360.0, "step": 1.0}),
+                "particle_size": ("FLOAT", {"default": 6.0, "min": 1.0, "max": 100.0, "step": 0.5}),
+                "particle_speed": ("FLOAT", {"default": 200.0, "min": 0.0, "max": 1000.0, "step": 1.0}),
+                "emission_rate": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 2000.0, "step": 0.1}),
+                "color": ("STRING", {"default": "(255,255,255)"}),
+                "emission_radius": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 200.0, "step": 0.1}),
+                "particle_shape": (["circle", "square", "spark"],),
+                "spark_length": ("FLOAT", {"default": 12.0, "min": 0.0, "max": 200.0, "step": 1.0}),
+                "particle_lifetime": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.1}),
+                "endless_mode": ("BOOLEAN", {"default": False}),
+                "start_frame": ("INT", {"default": 0, "min": 0, "max": 10000, "step": 1}),
+                "end_frame": ("INT", {"default": 0, "min": 0, "max": 10000, "step": 1}),
+                "scale": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.1}),
+                "threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "mode": (["relative", "absolute"],),
+                "onset_threshold": ("FLOAT", {"default": 0.08, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "burst_strength": ("FLOAT", {"default": 200.0, "min": 0.0, "max": 5000.0, "step": 10.0}),
+                "burst_min": ("INT", {"default": 0, "min": 0, "max": 20000, "step": 10}),
+                "burst_max": ("INT", {"default": 0, "min": 0, "max": 20000, "step": 10}),
+            },
+            "optional": {
+                "previous_emitter": ("TAICHI_EMITTER",),
+            },
+        }
+
+    RETURN_TYPES = ("TAICHI_EMITTER",)
+    FUNCTION = "create_emitter"
+    CATEGORY = "RyanOnTheInside/ParticleSystems/Taichi"
+
+    def _build_spot_positions(self, spot_count, position_mode, lock_x, lock_y, random_seed):
+        rng = np.random.default_rng(int(random_seed))
+        count = max(1, int(spot_count))
+        lock_x = max(0.0, min(1.0, float(lock_x)))
+        lock_y = max(0.0, min(1.0, float(lock_y)))
+
+        if position_mode == "lock_xy":
+            xs = np.full(count, lock_x)
+            ys = np.full(count, lock_y)
+        elif position_mode == "lock_x":
+            xs = np.full(count, lock_x)
+            ys = rng.random(count)
+        elif position_mode == "lock_y":
+            xs = rng.random(count)
+            ys = np.full(count, lock_y)
+        else:
+            xs = rng.random(count)
+            ys = rng.random(count)
+
+        return [(float(xs[i]), float(ys[i])) for i in range(count)]
+
+    def create_emitter(
+        self,
+        feature,
+        spot_count,
+        position_mode,
+        lock_x,
+        lock_y,
+        random_seed,
+        particle_direction,
+        direction_offset,
+        particle_spread,
+        particle_size,
+        particle_speed,
+        emission_rate,
+        color,
+        emission_radius,
+        particle_shape,
+        spark_length,
+        particle_lifetime,
+        endless_mode,
+        start_frame,
+        end_frame,
+        scale,
+        threshold,
+        mode,
+        onset_threshold,
+        burst_strength,
+        burst_min,
+        burst_max,
+        previous_emitter=None,
+    ):
+        shape_map = {"circle": 0, "square": 1, "spark": 2}
+        modulation = {
+            "feature": feature,
+            "scale": float(scale),
+            "threshold": float(threshold),
+            "mode": mode,
+            "onset_threshold": float(onset_threshold),
+            "burst_strength": float(burst_strength),
+            "burst_min": int(burst_min),
+            "burst_max": int(burst_max),
+        }
+
+        emitters = []
+        for emitter_x, emitter_y in self._build_spot_positions(
+            spot_count,
+            position_mode,
+            lock_x,
+            lock_y,
+            random_seed,
+        ):
+            emitter = {
+                "emitter_x": float(emitter_x),
+                "emitter_y": float(emitter_y),
+                "base_emitter_x": float(emitter_x),
+                "base_emitter_y": float(emitter_y),
+                "particle_direction": float(particle_direction),
+                "base_particle_direction": float(particle_direction),
+                "direction_offset": float(direction_offset),
+                "particle_spread": float(particle_spread),
+                "base_particle_spread": float(particle_spread),
+                "particle_size": float(particle_size),
+                "base_particle_size": float(particle_size),
+                "particle_speed": float(particle_speed),
+                "emission_rate": float(emission_rate),
+                "color": _parse_color(color),
+                "emission_radius": float(emission_radius),
+                "particle_shape": shape_map.get(particle_shape, 0),
+                "spark_length": float(spark_length),
+                "particle_lifetime": float(particle_lifetime),
+                "endless_mode": bool(endless_mode),
+                "start_frame": int(start_frame),
+                "end_frame": int(end_frame),
+                "audio_modulation": modulation,
+            }
+            emitters.append(emitter)
+
+        if previous_emitter is None:
+            emitter_list = emitters
+        else:
+            emitter_list = previous_emitter + emitters
 
         return (emitter_list,)
 
@@ -299,7 +649,7 @@ class TaichiParticleEmitterOnPath(RyanOnTheInside):
                 "particle_spread": ("FLOAT", {"default": 45.0, "min": 0.0, "max": 360.0, "step": 1.0}),
                 "particle_size": ("FLOAT", {"default": 6.0, "min": 1.0, "max": 100.0, "step": 0.5}),
                 "particle_speed": ("FLOAT", {"default": 200.0, "min": 0.0, "max": 1000.0, "step": 1.0}),
-                "emission_rate": ("FLOAT", {"default": 10.0, "min": 0.0, "max": 200.0, "step": 0.1}),
+                "emission_rate": ("FLOAT", {"default": 10.0, "min": 0.0, "max": 2000.0, "step": 0.1}),
                 "color": ("STRING", {"default": "(255,255,255)"}),
                 "emission_radius": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 200.0, "step": 0.1}),
                 "particle_shape": (["circle", "square", "spark"],),

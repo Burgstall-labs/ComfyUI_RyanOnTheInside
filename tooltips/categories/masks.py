@@ -64,7 +64,7 @@ Each node type has different parameters that can be modulated:
         "wells": "Optional list of gravity well configurations (GRAVITY_WELL type)",
         "static_bodies": "Optional list of static collision bodies (STATIC_BODY type)",
         "well_strength_multiplier": "Global multiplier for gravity well strengths (0.0 to 10.0)"
-    }, inherits_from=['MaskBase', 'ABC'], description="Create dynamic mask effects using particle systems with physics simulation, including forces like gravity, wind, and vortices.")
+    }, inherits_from=['MaskBase', 'ABC'], description="Create dynamic mask effects using particle systems with physics simulation, including forces like gravity, wind, and vortices. Tips: increase particle_count for density, lower gravity for floaty motion, and use warmup_period for instant fills.")
 
     # FlexMaskNormalBase tooltips (inherits from: FlexMaskBase)
     TooltipManager.register_tooltips("FlexMaskNormalBase", {
@@ -109,7 +109,7 @@ Each node type has different parameters that can be modulated:
     TooltipManager.register_tooltips("ParticleEmissionMask", {
         "emission_strength": "Strength of particle emission effect (0.0 to 1.0)",
         "draw_modifiers": "Visibility of vortices and gravity wells (0.0 to 1.0)"
-    }, inherits_from='ParticleSystemMaskBase')
+    }, inherits_from='ParticleSystemMaskBase', description="Render the particle system into a mask/image. Tips: lower emission_strength for subtle trails and hide modifiers for clean output.")
 
     # TaichiParticleMask tooltips (inherits from: MaskBase)
     TooltipManager.register_tooltips("TaichiParticleMask", {
@@ -122,7 +122,7 @@ Each node type has different parameters that can be modulated:
         "frame_rate": "Simulation frame rate for time step (1.0 to 120.0)",
         "start_frame": "Frame to start emission (0 to 10000)",
         "end_frame": "Frame to end emission (0 to 10000, 0 means until end)"
-    }, inherits_from='MaskBase', description="Taichi-accelerated particle emission mask with audio-reactive emission support.")
+    }, inherits_from='MaskBase', description="Taichi-accelerated particle emission mask with audio-reactive emission support. Tips: raise particle_count for density, adjust frame_rate for speed, and use emitter-level particle_lifetime to override the global lifetime.")
 
     # TaichiParticleEmitter tooltips
     TooltipManager.register_tooltips("TaichiParticleEmitter", {
@@ -144,7 +144,66 @@ Each node type has different parameters that can be modulated:
         "end_frame": "Frame to end the emission (0 to 10000)",
         "previous_emitter": "Optional previous emitter to chain with (TAICHI_EMITTER type)",
         "emitter_modulation": "Optional audio modulation for emission (TAICHI_EMITTER_MOD type)"
-    }, description="Define a Taichi particle emitter with optional audio-driven modulation.")
+    }, description="Define a Taichi particle emitter with optional audio-driven modulation. Tips: lower particle_spread for tight beams, set emission_radius to 0 for sharp points, and use endless_mode if you hit particle_count limits.")
+
+    # TaichiParticleEmitterFromMaskEdges tooltips
+    TooltipManager.register_tooltips("TaichiParticleEmitterFromMaskEdges", {
+        "masks": "Input masks used to locate edge points (MASK type)",
+        "spot_count": "Number of edge emitters to sample (1 to 200)",
+        "edge_low_threshold": "Canny low threshold for edge detection (0 to 255)",
+        "edge_high_threshold": "Canny high threshold for edge detection (0 to 255)",
+        "sampling_mode": "Sample edges per frame or reuse the first frame ('per_frame', 'first_frame')",
+        "direction_mode": "Emit outward or inward from the mask boundary",
+        "random_seed": "Seed for deterministic edge sampling",
+        "particle_direction": "Fallback direction when edge normals are unavailable",
+        "direction_offset": "Additional direction offset in degrees (-360.0 to 360.0)",
+        "particle_spread": "Spread angle of particle emission in degrees (0.0 to 360.0)",
+        "particle_size": "Size of emitted particles (1.0 to 100.0)",
+        "particle_speed": "Speed of emitted particles in pixels/sec (0.0 to 1000.0)",
+        "emission_rate": "Base emission rate in particles/sec (0.0 to 200.0)",
+        "color": "Color of emitted particles (RGB string)",
+        "emission_radius": "Radius of the area from which particles are emitted (0.0 to 200.0)",
+        "particle_shape": "Particle shape ('circle', 'square', 'spark')",
+        "spark_length": "Length of spark streaks when using 'spark' shape (0.0 to 200.0)",
+        "particle_lifetime": "Override particle lifetime for this emitter (0 means use global)",
+        "endless_mode": "When enabled, reuse particle slots for endless emission",
+        "start_frame": "Frame to start the emission (0 to 10000)",
+        "end_frame": "Frame to end the emission (0 to 10000)",
+        "previous_emitter": "Optional previous emitter to chain with (TAICHI_EMITTER type)",
+        "emitter_modulation": "Optional audio modulation for emission (TAICHI_EMITTER_MOD type)"
+    }, description="Emit Taichi particles from mask edges with outward or inward normals. Tips: use first_frame for stable masks, lower spot_count for clean silhouettes, and set emission_radius to 0 to avoid ring patterns.")
+
+    # TaichiParticleBurstSpots tooltips
+    TooltipManager.register_tooltips("TaichiParticleBurstSpots", {
+        "feature": "Feature input used to trigger bursts (FEATURE type)",
+        "spot_count": "Number of burst spots to create (1 to 200)",
+        "position_mode": "How spot positions are chosen ('random', 'lock_x', 'lock_y', 'lock_xy')",
+        "lock_x": "Locked X coordinate when using lock_x or lock_xy (0.0 to 1.0)",
+        "lock_y": "Locked Y coordinate when using lock_y or lock_xy (0.0 to 1.0)",
+        "random_seed": "Seed for deterministic random spot placement",
+        "particle_direction": "Direction of particle emission in degrees (0.0 to 360.0)",
+        "direction_offset": "Additional direction offset in degrees (-360.0 to 360.0)",
+        "particle_spread": "Spread angle of particle emission in degrees (0.0 to 360.0)",
+        "particle_size": "Size of emitted particles (1.0 to 100.0)",
+        "particle_speed": "Speed of emitted particles in pixels/sec (0.0 to 1000.0)",
+        "emission_rate": "Base emission rate in particles/sec (0.0 to 200.0)",
+        "color": "Color of emitted particles (RGB string)",
+        "emission_radius": "Radius of the area from which particles are emitted (0.0 to 200.0)",
+        "particle_shape": "Particle shape ('circle', 'square', 'spark')",
+        "spark_length": "Length of spark streaks when using 'spark' shape (0.0 to 200.0)",
+        "particle_lifetime": "Override particle lifetime for this emitter (0 means use global)",
+        "endless_mode": "When enabled, reuse particle slots for endless emission",
+        "start_frame": "Frame to start the emission (0 to 10000)",
+        "end_frame": "Frame to end the emission (0 to 10000)",
+        "scale": "Emission rate scale applied to the feature value (0.0 to 10.0)",
+        "threshold": "Feature activation threshold (0.0 to 1.0)",
+        "mode": "Emission modulation mode ('relative' or 'absolute')",
+        "onset_threshold": "Feature delta threshold to trigger a burst (0.0 to 1.0)",
+        "burst_strength": "Burst multiplier applied to feature delta (0.0 to 5000.0)",
+        "burst_min": "Minimum burst count when triggered (0 to 20000, 0 disables)",
+        "burst_max": "Maximum burst count when triggered (0 to 20000, 0 disables)",
+        "previous_emitter": "Optional previous emitter to chain with (TAICHI_EMITTER type)"
+    }, description="Create multiple burst-only Taichi emitters with audio-driven bursts. Tips: set emission_rate to 0 for pure bursts, raise onset_threshold to reduce triggers, and use lock_x or lock_y for aligned bursts.")
 
     # TaichiParticleAudioReactiveEmission tooltips
     TooltipManager.register_tooltips("TaichiParticleAudioReactiveEmission", {
@@ -156,7 +215,7 @@ Each node type has different parameters that can be modulated:
         "burst_strength": "Burst multiplier applied to feature delta (0.0 to 5000.0)",
         "burst_min": "Minimum burst count when triggered (0 to 20000, 0 disables)",
         "burst_max": "Maximum burst count when triggered (0 to 20000, 0 disables)"
-    }, description="Create an audio-reactive modulation payload for Taichi emitters.")
+    }, description="Create an audio-reactive modulation payload for Taichi emitters. Tips: use relative mode for gentle scaling, absolute mode for hard spikes, and adjust onset_threshold to control burst frequency.")
 
     # TaichiPathFromPoints tooltips
     TooltipManager.register_tooltips("TaichiPathFromPoints", {
@@ -167,7 +226,7 @@ Each node type has different parameters that can be modulated:
         "height": "Preview height in pixels",
         "thickness": "Path preview thickness in pixels",
         "preview_color": "Path preview color (RGB string)"
-    }, description="Create a Taichi path from explicit points with a preview mask.")
+    }, description="Create a Taichi path from explicit points with a preview mask. Tips: keep points in 0..1 space and enable closed for loops.")
 
     # TaichiPathFromShape tooltips
     TooltipManager.register_tooltips("TaichiPathFromShape", {
@@ -190,7 +249,7 @@ Each node type has different parameters that can be modulated:
         "preview_height": "Preview height in pixels",
         "preview_thickness": "Path preview thickness in pixels",
         "preview_color": "Path preview color (RGB string)"
-    }, description="Generate a Taichi path from simple shapes with preview.")
+    }, description="Generate a Taichi path from simple shapes with preview. Tips: increase segments for smoother curves and use preview to confirm placement.")
 
     # TaichiPathPreview tooltips
     TooltipManager.register_tooltips("TaichiPathPreview", {
@@ -203,7 +262,7 @@ Each node type has different parameters that can be modulated:
         "emitter_progress": "Normalized path progress (0.0 to 1.0)",
         "emitter_size": "Marker size in pixels",
         "emitter_color": "Marker color (RGB string)"
-    }, description="Preview a Taichi path as a mask and image.")
+    }, description="Preview a Taichi path as a mask and image. Tips: enable show_emitter to confirm alignment and direction.")
 
     TooltipManager.register_tooltips("TaichiPathFromSpeedDirection", {
         "speed_feature": "Feature driving speed (FEATURE type)",
@@ -218,7 +277,7 @@ Each node type has different parameters that can be modulated:
         "direction_mode": "Absolute uses mapped angle; relative adds to current heading",
         "direction_smoothing": "How quickly direction follows the feature (0..1)",
         "speed_smoothing": "How quickly speed follows the feature (0..1)"
-    }, description="Build a path by integrating speed and direction features with edge bounces.")
+    }, description="Build a path by integrating speed and direction features with edge bounces. Tips: increase smoothing to reduce jitter and clamp min/max speeds for stability.")
 
     # TaichiPathEmitterModulation tooltips
     TooltipManager.register_tooltips("TaichiPathEmitterModulation", {
@@ -247,7 +306,7 @@ Each node type has different parameters that can be modulated:
         "burst_strength": "Burst multiplier for feature deltas",
         "burst_min": "Minimum burst count",
         "burst_max": "Maximum burst count"
-    }, description="Modulate path speed, size, angle, and spread using features.")
+    }, description="Modulate path speed, size, angle, and spread using features. Tips: use small scales first, then add offsets to bias direction or size.")
 
     # TaichiParticleEmitterOnPath tooltips
     TooltipManager.register_tooltips("TaichiParticleEmitterOnPath", {
@@ -274,11 +333,11 @@ Each node type has different parameters that can be modulated:
         "end_frame": "Frame to end emission",
         "emitter_modulation": "Optional emission modulation (TAICHI_EMITTER_MOD)",
         "path_modulation": "Optional path modulation (TAICHI_PATH_MOD)"
-    }, description="Emit Taichi particles while traversing a path.")
+    }, description="Emit Taichi particles while traversing a path. Tips: enable align_to_path for motion-aligned bursts and reduce path_speed for smoother loops.")
 
     # TaichiResetCache tooltips
     TooltipManager.register_tooltips("TaichiResetCache", {
-    }, description="Reset cached Taichi particle buffers to free GPU/CPU memory.")
+    }, description="Reset cached Taichi particle buffers to free GPU/CPU memory. Tip: use after changing resolution or particle_count.")
 
     # ParticleSystemModulatorBase tooltips (inherits from: RyanOnTheInside)
     TooltipManager.register_tooltips("ParticleSystemModulatorBase", {
@@ -300,7 +359,7 @@ Each node type has different parameters that can be modulated:
     # EmitterEmissionRateModulation tooltips (inherits from: EmitterModulationBase)
     TooltipManager.register_tooltips("EmitterEmissionRateModulation", {
         "target_emission_rate": "Target emission rate at the end of the modulation (0.1 to 100.0 particles/frame)"
-    }, inherits_from='EmitterModulationBase')
+    }, inherits_from='EmitterModulationBase', description="Animate emission rate over time. Tips: use easing + palindrome for pulsating emitters.")
 
     # Vortex tooltips (inherits from: ParticleSystemModulatorBase)
     TooltipManager.register_tooltips("Vortex", {
@@ -312,7 +371,7 @@ Each node type has different parameters that can be modulated:
         "movement_speed": "Speed of movement of the vortex object (0.0 to 10.0)",
         "color": "Color of the vortex visualization (RGB tuple)",
         "draw": "Thickness of the vortex visualization (0.0 to 1.0)"
-    }, inherits_from='ParticleSystemModulatorBase')
+    }, inherits_from='ParticleSystemModulatorBase', description="Swirling force field. Tips: raise radius for smoother flow and lower strength to avoid tight spirals.")
 
     # GravityWell tooltips (inherits from: ParticleSystemModulatorBase)
     TooltipManager.register_tooltips("GravityWell", {
@@ -323,7 +382,7 @@ Each node type has different parameters that can be modulated:
         "type": "Type of gravity well ('attract' or 'repel')",
         "color": "Color of the gravity well visualization (RGB tuple)",
         "draw": "Thickness of the gravity well visualization (0.0 to 1.0)"
-    }, inherits_from='ParticleSystemModulatorBase')
+    }, inherits_from='ParticleSystemModulatorBase', description="Attracts or repels particles. Tips: keep radius larger than emission_radius for smoother curves.")
 
     # ParticleEmitter tooltips (inherits from: ParticleSystemModulatorBase)
     TooltipManager.register_tooltips("ParticleEmitter", {
@@ -344,7 +403,7 @@ Each node type has different parameters that can be modulated:
         "spring_joint_setting": "Optional spring joint configuration (SPRING_JOINT_SETTING type)",
         "particle_modulation": "Optional particle modulation configuration (PARTICLE_MODULATION type)",
         "emitter_modulation": "Optional emitter modulation configuration (EMITTER_MODULATION type)"
-    }, inherits_from='ParticleSystemModulatorBase')
+    }, inherits_from='ParticleSystemModulatorBase', description="Define a particle emitter for the CPU particle system. Tips: set emission_radius to 0 for pinpoint sources and reduce spread for beams.")
 
     # SpringJointSetting tooltips (inherits from: ParticleSystemModulatorBase)
     TooltipManager.register_tooltips("SpringJointSetting", {
@@ -352,7 +411,7 @@ Each node type has different parameters that can be modulated:
         "damping": "Damping factor of the spring (0.0 to 100.0)",
         "rest_length": "Rest length of the spring (0.0 to 100.0)",
         "max_distance": "Maximum distance the spring can stretch (0.0 to 500.0)"
-    }, inherits_from='ParticleSystemModulatorBase')
+    }, inherits_from='ParticleSystemModulatorBase', description="Connects particles with springs. Tips: increase damping to prevent jitter and keep rest_length close to particle spacing.")
 
     # EmitterMovement tooltips (inherits from: ParticleSystemModulatorBase)
     TooltipManager.register_tooltips("EmitterMovement", {
@@ -364,7 +423,7 @@ Each node type has different parameters that can be modulated:
         "direction_amplitude": "Maximum angle change in degrees (0.0 to 360.0)",
         "feature_param": "Parameter to be modulated by the feature ('emitter_x_frequency', 'emitter_y_frequency', 'direction_frequency')",
         "feature": "Optional feature to modulate the movement (FEATURE type)"
-    }, inherits_from='ParticleSystemModulatorBase')
+    }, inherits_from='ParticleSystemModulatorBase', description="Animate emitter position and direction. Tips: start with low amplitudes to avoid leaving frame bounds.")
 
     # StaticBody tooltips (inherits from: ParticleSystemModulatorBase)
     TooltipManager.register_tooltips("StaticBody", {
@@ -377,7 +436,7 @@ Each node type has different parameters that can be modulated:
         "friction": "Friction of the static body (0.0 to 1.0)",
         "draw": "Whether to visualize the static body and how thick",
         "color": "Color of the static body (RGB tuple)"
-    }, inherits_from='ParticleSystemModulatorBase')
+    }, inherits_from='ParticleSystemModulatorBase', description="Static collision geometry. Tips: use low friction for sliding and higher elasticity for bouncy results.")
 
     # ParticleModulationBase tooltips (inherits from: ParticleSystemModulatorBase)
     TooltipManager.register_tooltips("ParticleModulationBase", {
@@ -394,17 +453,17 @@ Each node type has different parameters that can be modulated:
     # ParticleSizeModulation tooltips (inherits from: ParticleModulationBase)
     TooltipManager.register_tooltips("ParticleSizeModulation", {
         "target_size": "Target size for particles at the end of the modulation (0.0 to 400.0)"
-    }, inherits_from='ParticleModulationBase')
+    }, inherits_from='ParticleModulationBase', description="Animate particle size over time. Tips: use ease_in_out to avoid popping.")
 
     # ParticleSpeedModulation tooltips (inherits from: ParticleModulationBase)
     TooltipManager.register_tooltips("ParticleSpeedModulation", {
         "target_speed": "Target speed for particles at the end of the modulation (0.0 to 1000.0)"
-    }, inherits_from='ParticleModulationBase')
+    }, inherits_from='ParticleModulationBase', description="Animate particle speed over time. Tips: use palindrome for oscillating speed.")
 
     # ParticleColorModulation tooltips (inherits from: ParticleModulationBase)
     TooltipManager.register_tooltips("ParticleColorModulation", {
         "target_color": "Target color for particles at the end of the modulation (RGB tuple)"
-    }, inherits_from='ParticleModulationBase')
+    }, inherits_from='ParticleModulationBase', description="Animate particle color over time. Tips: use long durations for smooth gradients.")
 
     # OpticalFlowMaskModulation tooltips (inherits from: OpticalFlowMaskBase)
     TooltipManager.register_tooltips("OpticalFlowMaskModulation", {
