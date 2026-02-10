@@ -61,7 +61,7 @@ print("""
       """)
 
 
-    
+# Your custom imports (HEAD)
 from .nodes.masks.temporal_masks import (
     MaskMorph,
     MaskTransform,
@@ -228,34 +228,50 @@ from .nodes.utility_nodes import (
     ImageIndexSelect,
 )
 
-###images
-
-from .nodes.images.image_utility_nodes import (
-    DyeImage,
-    Color_Picker,
-    ImageCASBatch,
-    ImageScaleToTarget
-
+from .nodes.flex.feature_pipe import (
+    FeaturePipe,
 )
 
-from .nodes.masks.flex_masks import (
-    FlexMaskMorph,
-    FlexMaskWarp,
-    FlexMaskTransform,
-    FlexMaskMath,
-    FlexMaskOpacity,
-    FlexMaskVoronoiScheduled,
-    FlexMaskBinary,
-    FlexMaskWavePropagation,
-    FlexMaskEmanatingRings,
-    FlexMaskRandomShapes,
-    FlexMaskDepthChamber,
-   # FlexMaskDepthChamberRelative, #NOTE work in progress
-    FlexMaskInterpolate,
-
+from .nodes.flex.modulation_nodes import (
+    FeatureToWeightsStrategy,
+    FeatureToSplineData,
+    SplineFeatureModulator,
+    FeatureToFloat,
+    FeatureToMask,
+    FeatureToFilteredList,
+    SplineRhythmModulator,
 )
 
-from .nodes.images.flex_images import (
+from .nodes.flex.modulation_nodes_depth import (
+    DepthInjection,
+    DepthRippleEffect,
+    DepthBlender,
+    DepthShapeModifier,
+    DepthShapeModifierPrecise,
+    #DepthMapProtrusion,
+)
+
+from .nodes.flex.modulation_nodes_feature import (
+    FeatureMixer,
+    FeatureCombine,
+    FeatureOscillator,
+    FeatureScaler,
+    FeatureSmoothing,
+    FeatureFade,
+    FeatureMath,
+    FeatureRebase,
+    FeatureTruncateOrExtend,
+    FeatureAccumulate,
+    FeatureContiguousInterpolate,
+    FeatureRenormalize,
+)
+
+from .nodes.flex.modulation_nodes_flex_params import(
+    FeatureToFlexIntParam,
+    FeatureToFlexFloatParam,
+)
+
+from .nodes.flex.flex_core import (
     FlexImageEdgeDetect,
     FlexImagePosterize,
     FlexImageKaleidoscope,
@@ -275,212 +291,40 @@ from .nodes.images.flex_images import (
     FlexImageHorizontalToVertical,
 )
 
-from .nodes.video.flex_video import (
+from .nodes.flex.flex_video_effects import (
     FlexVideoSpeed,
-    FlexVideoDirection,
     FlexVideoFrameBlend,
-    FlexVideoSeek,
 )
 
-from .nodes.depth.depth_base import(
-    DepthInjection,
-    DepthBlender,
-    DepthRippleEffect,
+from .nodes.garb import (
+    DyeImage,
+    Color_Picker,
+    ImageCASBatch,
+    ImageScaleToTarget,
 )
 
-from .nodes.flex.flex_externals import (
-    FeatureToWeightsStrategy,
-    FeatureToSplineData,
-    SplineFeatureModulator,
-    SplineRhythmModulator,
-    DepthShapeModifier,
-    DepthShapeModifierPrecise,
-    FeatureToFloat,
-    FeatureToMask,
-    FeatureToFilteredList,
+from .nodes.midi_nodes import (
+    MIDIToAudio,
+    MIDILoader,
 )
 
+# Upstream imports (if they exist in newer version)
+import importlib
+import logging
 
-from .nodes.flex.feature_modulation import (
-    FeatureMixer,
-    FeatureCombine,
-    FeatureOscillator,
-    FeatureScaler,
-    FeatureSmoothing,
-    FeatureFade,
-    
-    FeatureMath,
-    FeatureRebase,
-    FeatureTruncateOrExtend,
-    FeatureAccumulate,
-    FeatureContiguousInterpolate,
-    FeatureRenormalize,
-    FeatureInterpolator,
-    FeaturePeakDetector,
-    FeatureInterpolateMulti,
-)
+# Upstream's dynamic node loading
+_NODE_MODULES = [
+    ".nodes.acestep.nodes",
+    ".nodes.doom.doom_node",
+]
 
-from .nodes.audio.flex_audio import (
-    FlexAudioPitchShift,
-    FlexAudioTimeStretch,
-)
-
-from .nodes.latents.flex_latents import (
-    FlexLatentInterpolate,
-    EmbeddingGuidedLatentInterpolate,
-    FlexLatentBlend,
-    FlexLatentNoise,
-)
-from .nodes.flex.parameter_scheduling import (
-    FeatureToFlexIntParam,
-    FeatureToFlexFloatParam,
-)
-
-from .nodes.latents.latent_frequency_blender import LatentFrequencyBlender
-
-from .nodes.flex.feature_pipe import ManualFeaturePipe
-
-from .nodes.preprocessors.pose import PoseInterpolator
-
-from .nodes.doom.doom import Doom_
-
-# from .nodes.models.flex_model_base import FlexFeatureAttentionControl
-
-from .audio_latent_blend import AudioLatentBlend, FlexlatentAudioBlend
-
-
-from .nodes.audio.midi_nodes import MIDIToAudio, MIDILoader
-
-# Import external integrations
-from .external_integration import (
-    HAS_ADVANCED_LIVE_PORTRAIT,
-    HAS_ADVANCED_CONTROLNET,
-    HAS_ANIMATEDIFF,
-    EXTERNAL_NODE_CLASS_MAPPINGS,
-)
-
-
-# Get the directory of the current file
-current_dir = os.path.dirname(os.path.realpath(__file__))
-
-# Register the midi_files directory
-midi_path = os.path.join(current_dir, "data/midi_files")
-folder_paths.add_model_folder_path("midi_files", midi_path)
-
-# Ensure the MIDI files directory exists
-os.makedirs(midi_path, exist_ok=True)
-
-# Get the path to ComfyUI's web/extensions directory
-extension_path = os.path.join(os.path.dirname(folder_paths.__file__), "web", "extensions")
-my_extension_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "web", "extensions")
-
-# Create RyanOnTheInside subfolder in ComfyUI extensions
-roti_extension_path = os.path.join(extension_path, "RyanOnTheInside")
-os.makedirs(roti_extension_path, exist_ok=True)
-
-# Clean up existing files in the RyanOnTheInside folder
-for file in os.listdir(roti_extension_path):
-    os.remove(os.path.join(roti_extension_path, file))
-
-# Copy our extension files to ComfyUI's extensions/RyanOnTheInside directory
-if os.path.exists(my_extension_path):
-    for file in os.listdir(my_extension_path):
-        if file.endswith('.js'):
-            src = os.path.join(my_extension_path, file)
-            dst = os.path.join(roti_extension_path, file)
-            print(f"[RyanOnTheInside] Copying extension file: {file}")
-            shutil.copy2(src, dst)
+# Your complete NODE_CLASS_MAPPINGS from HEAD
 NODE_CLASS_MAPPINGS = {
-    #NOTE: PoseInterpolator is not working yet
-    #"PoseInterpolator": PoseInterpolator,
-    # "FlexFeatureAttentionControl": FlexFeatureAttentionControl,
-    "AudioLatentBlend":             AudioLatentBlend,
-    "FlexlatentAudioBlend": FlexlatentAudioBlend,
-    "FeatureInterpolator":          FeatureInterpolator,
-    "FeaturePeakDetector":          FeaturePeakDetector,
-    "FeatureInterpolateMulti":      FeatureInterpolateMulti,
-    
-    "Doom_": Doom_,
-    "WhisperToPromptTravel":        WhisperToPromptTravel,
-    "ManualFeaturePipe":            ManualFeaturePipe,
-    "ManualFeatureFromPipe":        ManualFeatureFromPipe,
-    #latents
-    "FlexLatentInterpolate":        FlexLatentInterpolate,
-    "EmbeddingGuidedLatentInterpolate": EmbeddingGuidedLatentInterpolate,
-    "FlexLatentBlend":              FlexLatentBlend,
-    "FlexLatentNoise":              FlexLatentNoise,
-    "LatentFrequencyBlender":       LatentFrequencyBlender,
-    #video
-    "FlexVideoSpeed":               FlexVideoSpeed,
-    "FlexVideoDirection":           FlexVideoDirection,
-    "FlexVideoFrameBlend":          FlexVideoFrameBlend,
-    "FlexVideoSeek":                FlexVideoSeek,
-    ###temporal
-    "MaskMorph":                    MaskMorph,
-    "MaskTransform":                MaskTransform,
-    "MaskMath":                     MaskMath,
-    "MaskRings":                    MaskRings,
-    "MaskWarp":                     MaskWarp,
-
-    #optical flow   
-    "OpticalFlowMaskModulation":    OpticalFlowMaskModulation,
-    "OpticalFlowParticleSystem":    OpticalFlowParticleSystem,
-    "OpticalFlowDirectionMask":     OpticalFlowDirectionMask,
-
-    #particle simulation    
-    "ParticleEmissionMask":         ParticleEmissionMask,
-    "Vortex":                       Vortex,
-    "GravityWell":                  GravityWell,
-    "EmitterMovement":              EmitterMovement,
-    "ParticleEmitter":              ParticleEmitter,
-    "SpringJointSetting":           SpringJointSetting,
-    "StaticBody":                   StaticBody,
-    "ParticleColorModulation":      ParticleColorModulation,
-    "ParticleSizeModulation":       ParticleSizeModulation,
-    "ParticleSpeedModulation":      ParticleSpeedModulation,
-    "EmitterEmissionRateModulation":EmitterEmissionRateModulation,
-
-    # taichi particle simulation
-    "TaichiParticleEmitter":        TaichiParticleEmitter,
-    "TaichiParticleAudioReactiveEmission": TaichiParticleAudioReactiveEmission,
-    "TaichiParticleEmitterFromMaskEdges": TaichiParticleEmitterFromMaskEdges,
-    "TaichiParticleBurstSpots":     TaichiParticleBurstSpots,
-    "TaichiParticleMask":           TaichiParticleMask,
-    "TaichiPathEmitterModulation":  TaichiPathEmitterModulation,
-    "TaichiParticleEmitterOnPath":  TaichiParticleEmitterOnPath,
-    "TaichiPathFromPoints":         TaichiPathFromPoints,
-    "TaichiPathFromShape":          TaichiPathFromShape,
-    "TaichiPathPreview":            TaichiPathPreview,
-    "TaichiPathFromSpeedDirection": TaichiPathFromSpeedDirection,
-    "TaichiResetCache":             TaichiResetCache,
-
-    #flex masks 
-    "FlexMaskMorph":                FlexMaskMorph,
-    "FlexMaskWarp":                 FlexMaskWarp,
-    "FlexMaskTransform":            FlexMaskTransform,
-    "FlexMaskMath":                 FlexMaskMath,
-    "FlexMaskBinary":               FlexMaskBinary,
-    "FlexMaskOpacity":              FlexMaskOpacity,
-    "FlexMaskVoronoiScheduled":     FlexMaskVoronoiScheduled,
-    "FlexMaskWavePropagation":      FlexMaskWavePropagation,
-    "FlexMaskEmanatingRings":       FlexMaskEmanatingRings,
-    "FlexMaskRandomShapes":         FlexMaskRandomShapes,
-    "FlexMaskDepthChamber":         FlexMaskDepthChamber,
-    "FlexMaskInterpolate":          FlexMaskInterpolate,
-
-    #flex audio
-    "FlexAudioPitchShift":          FlexAudioPitchShift,
-    "FlexAudioTimeStretch":         FlexAudioTimeStretch,
-
-    #flex audio visualizers
-    "FlexAudioVisualizerCircular":  FlexAudioVisualizerCircular,
-    "FlexAudioVisualizerLine":      FlexAudioVisualizerLine,
-    "FlexAudioVisualizerContour":   FlexAudioVisualizerContour,
-    #audio  
-
+    #audio
     "AudioSeparatorSimple":         AudioSeparatorSimple,
     "DownloadOpenUnmixModel":       DownloadOpenUnmixModel,
     # "DownloadCREPEModel":           DownloadCREPEModel,
+
     "AudioFeatureVisualizer":       AudioFeatureVisualizer,
     "FrequencyFilterCustom":        FrequencyFilterCustom,
     "FrequencyFilterPreset":        FrequencyFilterPreset,
@@ -489,14 +333,11 @@ NODE_CLASS_MAPPINGS = {
     "EmptyMaskFromAudio":           EmptyMaskFromAudio,
     "EmptyImageFromAudio":          EmptyImageFromAudio,
     "EmptyImageAndMaskFromAudio":   EmptyImageAndMaskFromAudio,
-    "Audio_Combine":                 Audio_Combine,
-    "AudioSubtract":                AudioSubtract,
-    "Audio_Concatenate":             Audio_Concatenate,
+    "FlexAudioVisualizerCircular":  FlexAudioVisualizerCircular,
+    "FlexAudioVisualizerLine":      FlexAudioVisualizerLine,
+    "FlexAudioVisualizerContour":   FlexAudioVisualizerContour,
     "AudioPitchShift":              AudioPitchShift,
     "AudioTimeStretch":             AudioTimeStretch,
-    "AudioDither":                  AudioDither,
-    "AudioTrim":                    AudioTrim,
-    "AudioInfo":                    AudioInfo,
     "AudioGain":                    AudioGain,
     "AudioFade":                    AudioFade,
     "AudioPad":                     AudioPad,
@@ -504,18 +345,56 @@ NODE_CLASS_MAPPINGS = {
     "AudioChannelSplit":            AudioChannelSplit,
     "AudioResample":                AudioResample,
     "AudioVolumeNormalization":     AudioVolumeNormalization,
-    "Knob":                Knob,
+    "Audio_Combine":                Audio_Combine,
+    "AudioSubtract":                AudioSubtract,
+    "Audio_Concatenate":            Audio_Concatenate,
+    "AudioDither":                  AudioDither,
+    "AudioTrim":                    AudioTrim,
+    "AudioInfo":                    AudioInfo,
+    "Knob":                         Knob,
 
-    #features   
+    #video
+    "FlexVideoSpeed":               FlexVideoSpeed,
+    "FlexVideoFrameBlend":          FlexVideoFrameBlend,
+
+    #masks
+    "MaskMorph":                    MaskMorph,
+    "MaskTransform":                MaskTransform,
+    "MaskMath":                     MaskMath,
+    "MaskRings":                    MaskRings,
+    "MaskWarp":                     MaskWarp,
+    "OpticalFlowMaskModulation":    OpticalFlowMaskModulation,
+    "OpticalFlowDirectionMask":     OpticalFlowDirectionMask,
+    "OpticalFlowParticleSystem":    OpticalFlowParticleSystem,
+    "ParticleEmissionMask":         ParticleEmissionMask,
+    "Vortex":                       Vortex,
+    "GravityWell":                  GravityWell,
+    "ParticleEmitter":              ParticleEmitter,
+    "EmitterMovement":              EmitterMovement,
+    "SpringJointSetting":           SpringJointSetting,
+    "StaticBody":                   StaticBody,
+    "ParticleColorModulation":      ParticleColorModulation,
+    "ParticleSizeModulation":       ParticleSizeModulation,
+    "ParticleSpeedModulation":      ParticleSpeedModulation,
+    "EmitterEmissionRateModulation":EmitterEmissionRateModulation,
+    "TaichiParticleEmitter":        TaichiParticleEmitter,
+    "TaichiParticleAudioReactiveEmission": TaichiParticleAudioReactiveEmission,
+    "TaichiParticleMask":           TaichiParticleMask,
+    "TaichiPathEmitterModulation":  TaichiPathEmitterModulation,
+    "TaichiParticleEmitterOnPath":  TaichiParticleEmitterOnPath,
+    "TaichiParticleEmitterFromMaskEdges": TaichiParticleEmitterFromMaskEdges,
+    "TaichiParticleBurstSpots":     TaichiParticleBurstSpots,
+    "TaichiResetCache":             TaichiResetCache,
+    "TaichiPathFromPoints":         TaichiPathFromPoints,
+    "TaichiPathFromShape":          TaichiPathFromShape,
+    "TaichiPathPreview":            TaichiPathPreview,
+    "TaichiPathFromSpeedDirection": TaichiPathFromSpeedDirection,
+
+    #features
+    "FeaturePipe":                  FeaturePipe,
     "AudioFeatureExtractor":        AudioFeatureExtractor,
-
-#TODO make feature info JS display info
-#TODO: support negative feature values for opposit direction......
-    
-
     "PitchFeatureExtractor":        PitchFeatureExtractor,
     "RhythmFeatureExtractor":       RhythmFeatureExtractor,
-    
     "PitchRange":                   PitchRangeNode,
     "PitchRangePreset":             PitchRangePresetNode,
     "PitchRangeByNoteNode":         PitchRangeByNoteNode,
@@ -632,11 +511,25 @@ NODE_CLASS_MAPPINGS = {
     "MIDILoader": MIDILoader,
 }
 
+# Initialize display name mappings
+NODE_DISPLAY_NAME_MAPPINGS = {}
+
+# Load additional nodes from upstream's dynamic modules
+for _mod_path in _NODE_MODULES:
+    try:
+        _mod = importlib.import_module(_mod_path, package=__name__)
+        if hasattr(_mod, "NODE_CLASS_MAPPINGS"):
+            NODE_CLASS_MAPPINGS.update(_mod.NODE_CLASS_MAPPINGS)
+        if hasattr(_mod, "NODE_DISPLAY_NAME_MAPPINGS"):
+            NODE_DISPLAY_NAME_MAPPINGS.update(_mod.NODE_DISPLAY_NAME_MAPPINGS)
+    except Exception as _e:
+        logging.warning(f"[RyanOnTheInside] Failed to load {_mod_path}: {_e}")
 
 WEB_DIRECTORY = "./web/js"
 EXTENSION_WEB_DIRS = ["./web/extensions"]
 
-NODE_DISPLAY_NAME_MAPPINGS = {
+# Your custom display name mappings
+NODE_DISPLAY_NAME_MAPPINGS.update({
     "AudioSeparatorSimple":         "Audio Separator",
     "ProximityVisualizer":          "Preview Proximity",
     "EffectVisualizer":             "Preview FeatureEffect",
@@ -681,15 +574,13 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Audio_Concatenate":             "Audio Concatenate ROTI",
     "Color_Picker":                  "Color_Picker ROTI",
     "Doom_":                        "DOOM",
-}
-
+})
 
 
 from .nodes.acestep.nodes import NODE_CLASS_MAPPINGS as ACEStepNODE_CLASS_MAPPINGS
 from .nodes.acestep.nodes import NODE_DISPLAY_NAME_MAPPINGS as ACEStepNODE_DISPLAY_NAME_MAPPINGS
 
 # Update NODE_CLASS_MAPPINGS with external nodes
-NODE_CLASS_MAPPINGS.update(EXTERNAL_NODE_CLASS_MAPPINGS)
 NODE_CLASS_MAPPINGS.update(ACEStepNODE_CLASS_MAPPINGS)  
 NODE_DISPLAY_NAME_MAPPINGS.update(ACEStepNODE_DISPLAY_NAME_MAPPINGS)
 

@@ -16,7 +16,7 @@ class FeatureExtractorBase(ProgressMixin, ABC):
             "required": {
                 "extraction_method": (["error_not_implemented"],),
                 "frame_rate": ("FLOAT", {"default": 30.0, "min": 1.0, "max": 120.0, "step": 0.1}),
-                "frame_count": ("INT", {"default": 30, "min": 1}),
+                "frame_count": ("INT", {"default": 30, "min": 1, "max": 999999}),
                 "width": ("INT", {"default": 512, "min": 64, "max": 4096, "step": 64}),
                 "height": ("INT", {"default": 512, "min": 64, "max": 4096, "step": 64}),
             }
@@ -410,6 +410,27 @@ class FeatureInfoNode():
             min_val,
             max_val
         )
+
+NODE_CLASS_MAPPINGS = {
+    "TimeFeatureNode": TimeFeatureNode,
+    "DepthFeatureNode": DepthFeatureNode,
+    "ColorFeatureNode": ColorFeatureNode,
+    "BrightnessFeatureNode": BrightnessFeatureNode,
+    "MotionFeatureNode": MotionFeatureNode,
+    "AreaFeatureNode": AreaFeatureNode,
+    "ManualFeatureNode": ManualFeatureNode,
+    "ManualFeatureFromPipe": ManualFeatureFromPipe,
+    "DrawableFeatureNode": DrawableFeatureNode,
+    "FeatureInfoNode": FeatureInfoNode,
+    "FloatFeatureNode": FloatFeatureNode,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "TimeFeatureNode": "Time Feature",
+    "DepthFeatureNode": "Depth Feature",
+    "BrightnessFeatureNode": "Brightness Feature",
+    "MotionFeatureNode": "Motion Feature",
+}
 
 
 

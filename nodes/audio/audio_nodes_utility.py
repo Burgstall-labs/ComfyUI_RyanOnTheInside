@@ -9,9 +9,9 @@ from .audio_utils import (
     combine_audio,
     dither_audio,
 )
+from . import librosa_replacements as lr
 import torch
 from ...tooltips import apply_tooltips
-import librosa
 import numpy as np
 
 class AudioUtility(AudioNodeBase):
@@ -203,6 +203,14 @@ class AudioSubtract(AudioUtility):
 #TODO: TOO SLOW
 @apply_tooltips
 class AudioInfo(AudioUtility):
+    # Krumhansl-Kessler key profiles for major and minor keys
+    MAJOR_PROFILE = np.array([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88])
+    MINOR_PROFILE = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17])
+
+    # Note names matching the keyscale format in TextEncodeAceStepAudio1.5
+    # Using sharps for detection, which covers all keys
+    NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -212,47 +220,90 @@ class AudioInfo(AudioUtility):
             }
         }
 
-    RETURN_TYPES = ("INT", "INT", "INT", "INT", "INT", "FLOAT", "FLOAT", "FLOAT", "INT", "INT", "INT", "FLOAT", "FLOAT", "FLOAT", "STRING")
+    RETURN_TYPES = ("INT", "INT", "INT", "INT", "INT", "FLOAT", "FLOAT", "FLOAT", "INT", "INT", "INT", "INT", "FLOAT", "FLOAT", "FLOAT", "STRING", "COMBO")
     RETURN_NAMES = (
         "total_frames", "frames_per_beat", "frames_per_bar", "frames_per_quarter", "frames_per_eighth",
-        "audio_duration", "beats_per_second", "detected_bpm",
+        "audio_duration", "beats_per_second", "detected_bpm", "detected_bpm_rounded",
         "sample_rate", "num_channels", "num_samples",
-        "max_amplitude", "mean_amplitude", "rms_amplitude", "bit_depth"
+        "max_amplitude", "mean_amplitude", "rms_amplitude", "bit_depth",
+        "detected_key"
     )
     FUNCTION = "get_audio_info"
+
+    def _detect_key(self, audio_mono, sample_rate):
+        """Detect musical key using chromagram and Krumhansl-Kessler key profiles."""
+        chromagram = lr.feature_chroma_cqt(y=audio_mono, sr=sample_rate)
+
+        # Average chroma values across time to get a single 12-element profile
+        chroma_profile = np.mean(chromagram, axis=1)
+
+        # Normalize the profile
+        chroma_profile = chroma_profile / (np.linalg.norm(chroma_profile) + 1e-8)
+
+        best_correlation = -1
+        best_key = "C major"
+
+        # Test all 24 keys (12 major + 12 minor)
+        for i in range(12):
+            # Rotate the key profiles to match each root note
+            major_rotated = np.roll(self.MAJOR_PROFILE, i)
+            minor_rotated = np.roll(self.MINOR_PROFILE, i)
+
+            # Normalize profiles
+            major_rotated = major_rotated / (np.linalg.norm(major_rotated) + 1e-8)
+            minor_rotated = minor_rotated / (np.linalg.norm(minor_rotated) + 1e-8)
+
+            # Calculate correlation with major key
+            major_corr = np.corrcoef(chroma_profile, major_rotated)[0, 1]
+            if major_corr > best_correlation:
+                best_correlation = major_corr
+                best_key = f"{self.NOTE_NAMES[i]} major"
+
+            # Calculate correlation with minor key
+            minor_corr = np.corrcoef(chroma_profile, minor_rotated)[0, 1]
+            if minor_corr > best_correlation:
+                best_correlation = minor_corr
+                best_key = f"{self.NOTE_NAMES[i]} minor"
+
+        return best_key
 
     def get_audio_info(self, audio, frame_rate):
         # Get basic audio info
         waveform = audio['waveform']
         sample_rate = audio['sample_rate']
-        
+
         # Calculate original audio info first
         num_channels = waveform.shape[1] if waveform.dim() > 2 else 1
         num_samples = waveform.shape[-1]
         audio_duration = num_samples / sample_rate
-        
+
         # Calculate total frames
         total_frames = int(audio_duration * frame_rate)
-        
+
         # Detect BPM using librosa
         audio_mono = waveform.squeeze(0).mean(axis=0).cpu().numpy()
-        tempo, _ = librosa.beat.beat_track(y=audio_mono, sr=sample_rate)
+        tempo, _ = lr.beat_track(y=audio_mono, sr=sample_rate)
+        tempo_scalar = float(tempo.item() if hasattr(tempo, 'item') else tempo)
+        detected_bpm_rounded = int(round(tempo_scalar))
         beats_per_second = tempo / 60.0
-        
+
         # Calculate frames per beat and musical divisions
         frames_per_beat = int(frame_rate / beats_per_second)
         frames_per_bar = frames_per_beat * 4  # Assuming 4/4 time signature
         frames_per_quarter = frames_per_beat
         frames_per_eighth = frames_per_beat // 2
-        
+
         # Calculate amplitude statistics
         max_amplitude = float(torch.max(torch.abs(waveform)))
         mean_amplitude = float(torch.mean(torch.abs(waveform)))
         rms_amplitude = float(torch.sqrt(torch.mean(waveform ** 2)))
-        
+
         # Get bit depth from dtype
         bit_depth = str(waveform.dtype)
-        
+
+        # Detect musical key
+        detected_key = self._detect_key(audio_mono, sample_rate)
+
         return (
             total_frames,
             frames_per_beat,
@@ -262,13 +313,15 @@ class AudioInfo(AudioUtility):
             audio_duration,
             beats_per_second,
             tempo,  # detected_bpm
+            detected_bpm_rounded,
             sample_rate,
             num_channels,
             num_samples,
             max_amplitude,
             mean_amplitude,
             rms_amplitude,
-            bit_depth
+            bit_depth,
+            detected_key
         )
 
 @apply_tooltips
@@ -336,8 +389,8 @@ class Knob(AudioUtility):
         return {
             "required": {
                 "audio": ("AUDIO",),
-                "knob": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01, "display": "knob"}),
-                "other_knob": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "knob": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01, "display": "knob"}),
+                "other_knob": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.01}),
             }
         }
 
@@ -366,48 +419,49 @@ class Knob(AudioUtility):
                     channel_data = enhanced_np[ch]
                     
                     # Split into frequency bands
-                    stft = librosa.stft(channel_data)
+                    stft = lr.stft(channel_data)
                     freq_bins = stft.shape[0]
-                    
+
                     # Define frequency bands (low, mid, high)
                     low_band = int(freq_bins * 0.15)  # 0-15% of frequency range
                     mid_band = int(freq_bins * 0.6)   # 15-60% of frequency range
-                    
+
                     # Apply different compression to each band
                     # Low frequencies - heavy compression for tight bass
                     low_comp = 0.3 + (intensity * 0.5)  # 0.3-0.8
                     stft[:low_band] *= (1.0 + torch.tanh(torch.tensor(abs(stft[:low_band])) * low_comp).numpy())
-                    
+
                     # Mid frequencies - moderate compression for vocal clarity
                     mid_comp = 0.2 + (intensity * 0.3)  # 0.2-0.5
-                    stft[low_band:mid_band] *= (1.0 + (intensity * 0.4)) 
-                    
+                    stft[low_band:mid_band] *= (1.0 + (intensity * 0.4))
+
                     # High frequencies - excitement and air
                     high_boost = 0.3 + (intensity * 0.7)  # 0.3-1.0
                     stft[mid_band:] *= (1.0 + high_boost)
-                    
+
                     # Convert back to time domain
-                    processed_channel = librosa.istft(stft, length=len(channel_data))
+                    processed_channel = lr.istft(stft, length=len(channel_data))
                     processed_channels.append(processed_channel)
                 
                 enhanced_np = np.array(processed_channels)
             else:
                 # Mono processing
-                stft = librosa.stft(enhanced_np)
+                mono_data = enhanced_np.squeeze()
+                stft = lr.stft(mono_data)
                 freq_bins = stft.shape[0]
-                
+
                 # Define frequency bands
                 low_band = int(freq_bins * 0.15)
                 mid_band = int(freq_bins * 0.6)
-                
+
                 # Apply band-specific processing
                 low_comp = 0.3 + (intensity * 0.5)
                 stft[:low_band] *= (1.0 + np.tanh(np.abs(stft[:low_band]) * low_comp))
                 stft[low_band:mid_band] *= (1.0 + (intensity * 0.4))
                 stft[mid_band:] *= (1.0 + (0.3 + (intensity * 0.7)))
-                
+
                 # Convert back
-                enhanced_np = librosa.istft(stft, length=len(enhanced_np))
+                enhanced_np = lr.istft(stft, length=len(mono_data))
                 enhanced_np = np.expand_dims(enhanced_np, axis=0)
                 
             # Convert back to torch tensor
@@ -467,42 +521,43 @@ class Knob(AudioUtility):
                     for ch in range(enhanced_np.shape[0]):
                         # Process each channel independently
                         channel_data = enhanced_np[ch]
-                        stft = librosa.stft(channel_data)
-                        
+                        stft = lr.stft(channel_data)
+
                         # Create bass boost filter for this channel
                         freq_bins = stft.shape[0]
                         bass_gain = 1.0 + (other_knob * intensity * 2.0)
                         bass_shelf = np.ones(freq_bins)
                         bass_end = int(freq_bins * 0.1)
                         bass_shelf[:bass_end] = bass_gain
-                        
+
                         # Reshape for broadcasting and apply
                         bass_shelf = bass_shelf.reshape(-1, 1)
                         stft = stft * bass_shelf
-                        
+
                         # Convert back to time domain
-                        processed_channel = librosa.istft(stft, length=len(channel_data))
+                        processed_channel = lr.istft(stft, length=len(channel_data))
                         processed_channels.append(processed_channel)
                     
                     # Combine channels back
                     enhanced_np = np.array(processed_channels)
                 else:
                     # Mono processing
-                    stft = librosa.stft(enhanced_np.squeeze())
-                    
+                    mono_bass = enhanced_np.squeeze()
+                    stft = lr.stft(mono_bass)
+
                     # Create bass boost filter
                     freq_bins = stft.shape[0]
                     bass_gain = 1.0 + (other_knob * intensity * 2.0)
                     bass_shelf = np.ones(freq_bins)
                     bass_end = int(freq_bins * 0.1)
                     bass_shelf[:bass_end] = bass_gain
-                    
+
                     # Reshape for broadcasting and apply
                     bass_shelf = bass_shelf.reshape(-1, 1)
                     stft = stft * bass_shelf
-                    
+
                     # Convert back to time domain
-                    enhanced_np = librosa.istft(stft, length=len(enhanced_np.squeeze()))
+                    enhanced_np = lr.istft(stft, length=len(mono_bass))
                     enhanced_np = np.expand_dims(enhanced_np, axis=0)
                 
                 # Convert back to torch tensor
@@ -535,3 +590,23 @@ class Knob(AudioUtility):
                 enhanced = enhanced * pump_envelope
         
         return ({"waveform": enhanced, "sample_rate": sample_rate},)
+
+NODE_CLASS_MAPPINGS = {
+    "AudioPad": AudioPad,
+    "AudioChannelMerge": AudioChannelMerge,
+    "AudioChannelSplit": AudioChannelSplit,
+    "AudioResample": AudioResample,
+    "AudioVolumeNormalization": AudioVolumeNormalization,
+    "Audio_Combine": Audio_Combine,
+    "AudioSubtract": AudioSubtract,
+    "Audio_Concatenate": Audio_Concatenate,
+    "AudioDither": AudioDither,
+    "AudioTrim": AudioTrim,
+    "AudioInfo": AudioInfo,
+    "Knob": Knob,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "Audio_Combine": "Audio Combine ROTI",
+    "Audio_Concatenate": "Audio Concatenate ROTI",
+}
