@@ -196,6 +196,8 @@ from .nodes.masks.taichi_particle_nodes import (
     TaichiParticleMask,
     TaichiPathEmitterModulation,
     TaichiParticleEmitterOnPath,
+    TaichiParticleEmitterFromMaskEdges,
+    TaichiParticleBurstSpots,
     TaichiResetCache,
 )
 
@@ -441,6 +443,8 @@ NODE_CLASS_MAPPINGS = {
     # taichi particle simulation
     "TaichiParticleEmitter":        TaichiParticleEmitter,
     "TaichiParticleAudioReactiveEmission": TaichiParticleAudioReactiveEmission,
+    "TaichiParticleEmitterFromMaskEdges": TaichiParticleEmitterFromMaskEdges,
+    "TaichiParticleBurstSpots":     TaichiParticleBurstSpots,
     "TaichiParticleMask":           TaichiParticleMask,
     "TaichiPathEmitterModulation":  TaichiPathEmitterModulation,
     "TaichiParticleEmitterOnPath":  TaichiParticleEmitterOnPath,
@@ -642,6 +646,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "AudioFeatureVisualizer":       "Audio Feature Visualizer ***BETA***",
     "TaichiParticleEmitter":        "Taichi Particle Emitter",
     "TaichiParticleAudioReactiveEmission": "Taichi Audio Reactive Emission",
+    "TaichiParticleEmitterFromMaskEdges": "Taichi Particle Emitter From Mask Edges",
+    "TaichiParticleBurstSpots":     "Taichi Particle Burst Spots",
     "TaichiParticleMask":           "Taichi Particle Mask",
     "TaichiPathEmitterModulation":  "Taichi Path Emitter Modulation",
     "TaichiParticleEmitterOnPath":  "Taichi Particle Emitter On Path",

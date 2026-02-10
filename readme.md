@@ -112,6 +112,9 @@ For detailed information on each and every node, click the ❓ icon present in t
 
 ![Help and Documentation](./assets/help.png)
 
+Additional documentation:
+- [Taichi Particle Nodes Instructions](./TAICHI-particle-nodes-instructions.md)
+
 ## 🚀 Key Features
 Particles are now reactive!
 
